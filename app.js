@@ -21,6 +21,10 @@ const mongoose = require('mongoose');
 //md5
 const md5 = require('md5');
 
+//bcrypt
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
 const app = express();
 
 app.use(express.static('public'));
@@ -66,7 +70,9 @@ app.post('/register', (req, res) => {
         email: req.body.username,
         // password: req.body.password
         //md5
-        password: md5(req.body.password)
+        // password: md5(req.body.password)
+        //bcrypt
+        password: bcrypt.hashSync(req.body.password, saltRounds)
     });
     //create new user
     newUser.save((err, user) => {
@@ -81,17 +87,20 @@ app.post('/register', (req, res) => {
 //login user
 app.post('/login', (req, res) => {
     const username = req.body.username;
-    // const password = req.body.password;
+    const password = req.body.password;
     //md5
-    const password = md5(req.body.password);
+    //const password = md5(req.body.password);
     //find user
     User.findOne({email: username}, (err, foundUser) => {
         if(err) {
             console.log(err);
         } else {
             if(foundUser) {
-                if(foundUser.password === password) {
+                if(bcrypt.compareSync(password, foundUser.password)) {
                     res.render('secrets');
+
+                } else {
+                    res.send('Incorrect password');
                 }
             }
         }
