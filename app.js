@@ -55,7 +55,8 @@ mongoose.connect('mongodb://localhost:27017/userDB', { useNewUrlParser: true });
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
-    // googleId: String,
+    secret: String,
+    googleId: String,
 });
 
 //passport-local-mongoose
@@ -80,9 +81,6 @@ passport.deserializeUser(function(id, done) {
         done(err, user);
     });
 });
-
-//passport serializeUser and deserializeUser
-
 
 //passport google strategy
 passport.use(new GoogleStrategy({
@@ -120,12 +118,21 @@ app.get('/logout', (req, res) => {
 
 //secret
 app.get('/secrets', (req, res) => {
+    User.find({ secret: { $ne: null } }, (err, foundUsers) => {
+        if (err) {
+            console.log(err);
+        } else {
+            if (foundUsers) {
+                res.render('secrets', { usersWithSecrets: foundUsers });
+            }
+        }
+    });
     //check if user is logged in
-    if (req.isAuthenticated()) {
-        res.render('secrets');
-    } else {
-        res.redirect('/login');
-    }
+    // if (req.isAuthenticated()) {
+    //     res.render('secrets');
+    // } else {
+    //     res.redirect('/login');
+    // }
 });
 
 //auth with google
@@ -140,6 +147,44 @@ app.get('/auth/google/secrets',
         // Successful authentication, redirect home.
         res.redirect('/secrets');
     });
+
+//submit get
+app.get('/submit', (req, res) => {
+    //check if user is logged in
+    if (req.isAuthenticated()) {
+        res.render('submit');
+    } else {
+        res.redirect('/login');
+    }
+});
+
+//submit post
+app.post('/submit', (req, res) => {
+    const submittedSecret = req.body.secret;
+    //check if user is logged in
+    if (req.isAuthenticated()) {
+        User.findById(req.user.id, (err, foundUser) => {
+            if (err) {
+                console.log(err);
+            } else {
+                if (foundUser) {
+                    foundUser.secret = submittedSecret;
+                    foundUser.save((err) => {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            res.redirect('/secrets');
+                        }
+                    });
+                }
+            }
+        }
+        );
+    } else {
+        res.redirect('/login');
+    }
+}
+);
 
 //post user
 app.post('/register', (req, res) => {
